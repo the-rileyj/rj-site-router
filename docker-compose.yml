@@ -1,0 +1,16 @@
+version: "3.4"
+
+x-hong-kong:
+  dockerfile: "dockerfile"
+  route: "/"
+
+services:
+  rj-router:
+    image: therileyjohnson/rj-site-router:latest
+    restart: always
+    # volumes:
+    #   - ./content:/var/lib/ghost/content
+    #   - ./config.production.json:/var/lib/ghost/config.production.json
+    ports:
+      - "8009:80"
+      # - "443:443"
