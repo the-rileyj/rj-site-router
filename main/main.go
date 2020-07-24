@@ -17,10 +17,6 @@ func main() {
 
 	r := gin.Default()
 
-	// r.GET("/", func(c *gin.Context) {
-	// 	c.Writer.Write([]byte("test"))
-	// })
-
 	forwardHosts := map[string]string{
 		"/test": "http://test:80",
 	}
@@ -77,7 +73,7 @@ func main() {
 	}}
 
 	r.GET("/", func(c *gin.Context) {
-		c.Writer.Write([]byte("WOW2!"))
+		c.Writer.Write([]byte("WOW3!"))
 	})
 
 	r.NoRoute(func(c *gin.Context) {

@@ -33,4 +33,4 @@ EXPOSE 80
 EXPOSE 443
 
 # Run program
-ENTRYPOINT ["/server", "-d"]
+ENTRYPOINT ["/server"]

@@ -2,16 +2,13 @@ version: "3.4"
 
 x-hong-kong:
   dockerfile: "dockerfile"
-  route: "/"
-
-# Test33
 
 services:
   rj-router:
     image: therileyjohnson/rj-site-router:latest
     restart: always
-    # volumes:
-    #   - ./secrets:/secrets
+    volumes:
+      - ./secrets:/secrets
     ports:
-      - "8009:80"
-      # - "443:443"
+      # - "80:80"
+      - "443:443"
