@@ -73,7 +73,7 @@ func main() {
 	}}
 
 	r.GET("/", func(c *gin.Context) {
-		c.Writer.Write([]byte("WOW CI is sorta WORKING!?!"))
+		c.Writer.Write([]byte("WOW CI is sorta kinda WORKING!?!"))
 	})
 
 	r.NoRoute(func(c *gin.Context) {
