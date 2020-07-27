@@ -16,7 +16,7 @@ services:
       # - "443:443"
     networks:
       - rjnet
-      #Test 6
+      #Test 7
   # ghost:
   #   image: ghost:latest
   #   restart: always
