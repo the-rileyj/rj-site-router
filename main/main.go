@@ -176,7 +176,7 @@ func (rM *routesManager) UpdateProjectRoutes(projectMetadata *uyghurs.ProjectMet
 		rM.domainRoutesMap[routeInfo.Domain] = domainRoutesMan
 	}
 
-	rM.projectsMap[currentProjectMetadata.ProjectName] = projectMetadata
+	rM.projectsMap[projectMetadata.ProjectName] = projectMetadata
 }
 
 func main() {
