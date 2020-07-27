@@ -179,7 +179,7 @@ func main() {
 	development := flag.Bool("d", false, "development flag")
 
 	defaultDomain := flag.String("dd", "localhost:6767", "the most frequently used domain, roughly the default")
-	defaultHost := flag.String("dh", "rj-site", "the default host to forward requests to")
+	defaultHost := flag.String("dh", "http://rj-site", "the default host to forward requests to")
 
 	flag.Parse()
 
