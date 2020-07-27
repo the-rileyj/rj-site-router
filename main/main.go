@@ -212,7 +212,7 @@ func main() {
 			uyghursConnection, _, err := websocket.DefaultDialer.Dial(uyghursURL.String(), nil)
 
 			if err != nil {
-				log.Fatal("dial to uyghurs failed!")
+				log.Println("initial dial to uyghurs failed!")
 			}
 
 			defer uyghursConnection.Close()

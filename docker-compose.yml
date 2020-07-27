@@ -12,8 +12,8 @@ services:
     volumes:
       - ./secrets:/secrets
     ports:
-      - "6767:80"
-      # - "443:443"
+      # - "6767:80"
+      - "443:443"
     networks:
       - rjnet
       #Test 1
