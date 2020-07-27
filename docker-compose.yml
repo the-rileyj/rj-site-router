@@ -1,4 +1,4 @@
-version: "3.4"
+version: "3.5"
 
 x-hong-kong:
   buildInfo:
@@ -49,3 +49,4 @@ services:
 
 networks:
   rjnet:
+    name: RJnet
