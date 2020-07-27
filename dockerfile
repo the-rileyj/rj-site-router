@@ -17,7 +17,7 @@ COPY ./go.mod ./go.sum ./
 # COPY ./*.go ./
 
 # Compile program statically with local dependencies
-RUN env CGO_ENABLED=0 GO111MODULE=on GO15VENDOREXPERIMENT=1 go build -o server -ldflags '-extldflags "-static"' -tags=jsoniter -a -v -mod vendor ./main
+RUN env CGO_ENABLED=0 GO111MODULE=on GO15VENDOREXPERIMENT=1 go build -o server -ldflags '-w -s -extldflags "-static"' -tags=jsoniter -a -v -mod vendor ./main
 
 # Last stage of build, adding in files and running
 # newly compiled webserver
