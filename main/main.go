@@ -1,16 +1,20 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/the-rileyj/uyghurs"
 )
 
@@ -178,14 +182,94 @@ func (rM *routesManager) UpdateProjectRoutes(projectMetadata *uyghurs.ProjectMet
 func main() {
 	development := flag.Bool("d", false, "development flag")
 
-	defaultDomain := flag.String("dd", "localhost:6767", "the most frequently used domain, roughly the default")
+	defaultDomain := flag.String("dd", "therileyjohnson.com", "the most frequently used domain, roughly the default")
 	defaultHost := flag.String("dh", "http://rj-site", "the default host to forward requests to")
 
 	flag.Parse()
 
-	r := gin.Default()
+	uyghursSecretJSONFile, err := os.Open("secrets/router.json")
+
+	if err != nil {
+		panic(err)
+	}
+
+	uyghursSecretsJSONData := struct {
+		Secret string `json:"secret"`
+	}{}
+
+	err = json.NewDecoder(uyghursSecretJSONFile).Decode(&uyghursSecretsJSONData)
+
+	if err != nil {
+		panic(err)
+	}
 
 	routesManager := newRoutesManager(*defaultDomain, *defaultHost)
+
+	if !*development {
+		go func() {
+			uyghursURL := url.URL{Scheme: "wss", Host: "therileyjohnson.com:8443", Path: fmt.Sprintf("/router/%s", uyghursSecretsJSONData.Secret)}
+
+			uyghursConnection, _, err := websocket.DefaultDialer.Dial(uyghursURL.String(), nil)
+
+			if err != nil {
+				log.Fatal("dial to uyghurs failed!")
+			}
+
+			defer uyghursConnection.Close()
+
+			log.Println("Connected to uyghurs server!")
+
+			var projectsMetadataMessage []*uyghurs.ProjectMetadata
+
+			for {
+				_, messageBytes, err := uyghursConnection.ReadMessage()
+
+				if err != nil {
+					if websocket.IsCloseError(err, websocket.CloseNoStatusReceived, websocket.CloseAbnormalClosure, websocket.CloseInternalServerErr) {
+						for err != nil {
+							time.Sleep(5 * time.Second)
+
+							if uyghursConnection != nil {
+								uyghursConnection.Close()
+							}
+
+							uyghursConnection, _, err = websocket.DefaultDialer.Dial(uyghursURL.String(), nil)
+
+							if uyghursConnection != nil {
+								defer uyghursConnection.Close()
+							}
+						}
+
+						log.Println("Reconnected to uyghurs server!")
+
+						continue
+					} else if websocket.IsCloseError(err, websocket.CloseNoStatusReceived, websocket.CloseGoingAway, websocket.CloseMessage, websocket.CloseNormalClosure) {
+						log.Fatalln("Disconnected from uyghurs server,", err)
+					} else {
+						log.Fatalln("Disconnected from uyghurs server, unknown err,", err)
+					}
+				}
+
+				err = json.Unmarshal(messageBytes, &projectsMetadataMessage)
+
+				if err != nil {
+					log.Println("read error:", err)
+
+					continue
+				}
+
+				log.Println("Updating projects routes...")
+
+				for _, projectMetadata := range projectsMetadataMessage {
+					log.Println("Updating", projectMetadata.ProjectName)
+
+					routesManager.UpdateProjectRoutes(projectMetadata)
+				}
+			}
+		}()
+	}
+
+	r := gin.Default()
 
 	r.NoRoute(func(c *gin.Context) {
 		slashIndex := strings.Index(c.Request.URL.Path[1:], "/")
