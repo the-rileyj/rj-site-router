@@ -12,40 +12,9 @@ services:
     volumes:
       - ./secrets:/secrets
     ports:
-      # - "6767:80"
       - "443:443"
     networks:
       - rjnet
-      #Test 6
-  # ghost:
-  #   image: ghost:latest
-  #   restart: always
-  #   ports:
-  #     - 5599:2368
-  #   depends_on:
-  #     - ghost-db
-  #   environment:
-  #     url: http://localhost:7898/cms/
-  #     database__client: mysql
-  #     database__connection__host: ghost-db
-  #     database__connection__user: root
-  #     database__connection__password: MyStrongPassword
-  #     database__connection__database: ghost
-  #   volumes:
-  #     - ./content:/var/lib/ghost/content
-  #   networks:
-  #     - rjnet
-  # ghost-db:
-  #   image: mysql:5.7
-  #   ports:
-  #     - 3306:3306
-  #   restart: always
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: MyStrongPassword
-  #   volumes:
-  #     - ./mysql:/var/lib/mysql
-  #   networks:
-  #     - rjnet
 
 networks:
   rjnet:

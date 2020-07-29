@@ -29,7 +29,7 @@ COPY --from=Server-Builder /app/server /
 # Add HTTPS Certificates for making HTTP requests from the webserver
 COPY --from=Server-Builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-EXPOSE 80
+EXPOSE 9900
 EXPOSE 443
 
 # Run program

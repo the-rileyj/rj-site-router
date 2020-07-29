@@ -290,9 +290,8 @@ func main() {
 	})
 
 	if *development {
-		r.Run(":7898")
+		r.Run(":9900")
 	} else {
-		r.Run(":80")
-		// r.RunTLS(":443", "./secrets/cloudflare.crt", "./secrets/cloudflare.secret")
+		r.RunTLS(":443", "./secrets/cloudflare.crt", "./secrets/cloudflare.secret")
 	}
 }
