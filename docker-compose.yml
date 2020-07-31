@@ -19,3 +19,4 @@ services:
 networks:
   rjnet:
     name: RJnet
+# CI 1
