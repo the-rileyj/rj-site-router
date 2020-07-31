@@ -1,7 +1,5 @@
 package uyghurs
 
-import "github.com/gin-gonic/gin"
-
 /*
 {
   "ref": "refs/heads/master",
@@ -93,8 +91,7 @@ type BuildInfo struct {
 }
 
 type RouteInfo struct {
-	ForwardHost         string          `json:"forwardHost" yaml:"forwardHost"`
-	Route               string          `json:"route" yaml:"route"`
-	Domain              string          `json:"domain" yaml:"domain"`
-	ReverseProxyHandler gin.HandlerFunc `json:"-" yaml:"-"`
+	ForwardHost string `json:"forwardHost" yaml:"forwardHost"`
+	Route       string `json:"route" yaml:"route"`
+	Domain      string `json:"domain" yaml:"domain"`
 }

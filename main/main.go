@@ -22,7 +22,7 @@ import (
 )
 
 type domainRoutesManager struct {
-	routesMap    map[string]*uyghurs.RouteInfo
+	routesMap    map[string]*extendedRouteInfo
 	domainRegexp *regexp.Regexp
 }
 
@@ -31,6 +31,11 @@ type routesManager struct {
 	domainRoutesMap map[string]*domainRoutesManager
 	projectsMap     map[string]*uyghurs.ProjectMetadata
 	lock            *sync.Mutex
+}
+
+type extendedRouteInfo struct {
+	uyghurs.RouteInfo
+	ReverseProxyHandler gin.HandlerFunc
 }
 
 func newRoutesManager(defaultDomain, defaultHost string) *routesManager {
@@ -50,12 +55,14 @@ func newRoutesManager(defaultDomain, defaultHost string) *routesManager {
 	defaultDomainReverseProxy := httputil.NewSingleHostReverseProxy(defaultHostURL)
 
 	rM.domainRoutesMap[defaultDomain] = &domainRoutesManager{
-		routesMap: map[string]*uyghurs.RouteInfo{
+		routesMap: map[string]*extendedRouteInfo{
 			"/": {
-				Domain:              defaultDomain,
-				ForwardHost:         defaultHost,
+				RouteInfo: uyghurs.RouteInfo{
+					Domain:      defaultDomain,
+					ForwardHost: defaultHost,
+					Route:       "/",
+				},
 				ReverseProxyHandler: func(c *gin.Context) { defaultDomainReverseProxy.ServeHTTP(c.Writer, c.Request) },
-				Route:               "/",
 			},
 		},
 		domainRegexp: nil,
@@ -64,7 +71,7 @@ func newRoutesManager(defaultDomain, defaultHost string) *routesManager {
 	return rM
 }
 
-func (rM *routesManager) GetDefaultRouteInfo() *uyghurs.RouteInfo {
+func (rM *routesManager) GetDefaultRouteInfo() *extendedRouteInfo {
 	domainRoutesManager, exists := rM.domainRoutesMap[rM.defaultDomain]
 
 	if !exists {
@@ -80,7 +87,7 @@ func (rM *routesManager) GetDefaultRouteInfo() *uyghurs.RouteInfo {
 	return routeInfo
 }
 
-func (rM *routesManager) GetRouteInfo(domain, route string) (*uyghurs.RouteInfo, bool) {
+func (rM *routesManager) GetRouteInfo(domain, route string) (*extendedRouteInfo, bool) {
 	rM.lock.Lock()
 
 	defer rM.lock.Unlock()
@@ -154,7 +161,7 @@ func (rM *routesManager) UpdateProjectRoutes(projectMetadata *uyghurs.ProjectMet
 			}
 
 			domainRoutesMan = &domainRoutesManager{
-				routesMap:    make(map[string]*uyghurs.RouteInfo),
+				routesMap:    make(map[string]*extendedRouteInfo),
 				domainRegexp: domainRegexp,
 			}
 		}
@@ -169,11 +176,13 @@ func (rM *routesManager) UpdateProjectRoutes(projectMetadata *uyghurs.ProjectMet
 
 		newRouteReverseProxy := httputil.NewSingleHostReverseProxy(newRouteHostURL)
 
-		domainRoutesMan.routesMap[routeInfo.Route] = &uyghurs.RouteInfo{
-			Domain:              routeInfo.Domain,
+		domainRoutesMan.routesMap[routeInfo.Route] = &extendedRouteInfo{
+			RouteInfo: uyghurs.RouteInfo{
+				Domain:      routeInfo.Domain,
+				ForwardHost: routeInfo.ForwardHost,
+				Route:       routeInfo.Route,
+			},
 			ReverseProxyHandler: func(c *gin.Context) { newRouteReverseProxy.ServeHTTP(c.Writer, c.Request) },
-			ForwardHost:         routeInfo.ForwardHost,
-			Route:               routeInfo.Route,
 		}
 
 		rM.domainRoutesMap[routeInfo.Domain] = domainRoutesMan

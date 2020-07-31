@@ -35,7 +35,7 @@ github.com/mattn/go-isatty
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742
 github.com/modern-go/reflect2
-# github.com/the-rileyj/uyghurs v0.1.9
+# github.com/the-rileyj/uyghurs v0.1.10
 github.com/the-rileyj/uyghurs
 # github.com/ugorji/go/codec v1.1.7
 github.com/ugorji/go/codec
