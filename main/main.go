@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http/httputil"
 	"net/url"
 	"os"
@@ -14,7 +16,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 	"github.com/the-rileyj/uyghurs"
 )
 
@@ -209,45 +212,54 @@ func main() {
 		go func() {
 			uyghursURL := url.URL{Scheme: "wss", Host: "therileyjohnson.com:8443", Path: fmt.Sprintf("/router/%s", uyghursSecretsJSONData.Secret)}
 
-			uyghursConnection, _, err := websocket.DefaultDialer.Dial(uyghursURL.String(), nil)
+			connectIndefinitely := func() net.Conn {
+				var (
+					conn    net.Conn
+					connErr error
+				)
 
-			if err != nil {
-				log.Println("initial dial to uyghurs failed!")
+				dialCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+				for conn, _, _, connErr = ws.DefaultDialer.Dial(dialCtx, uyghursURL.String()); connErr != nil; {
+					time.Sleep(time.Second)
+
+					cancel()
+
+					dialCtx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+
+					conn, _, _, connErr = ws.DefaultDialer.Dial(dialCtx, uyghursURL.String())
+				}
+
+				cancel()
+
+				return conn
 			}
 
-			defer uyghursConnection.Close()
+			uyghursConnection := connectIndefinitely()
 
-			log.Println("Connected to uyghurs server!")
+			log.Println("Initial connection to uyghurs")
 
 			var projectsMetadataMessage []*uyghurs.ProjectMetadata
 
 			for {
-				_, messageBytes, err := uyghursConnection.ReadMessage()
+				messageBytes, _, err := wsutil.ReadServerData(uyghursConnection)
 
 				if err != nil {
-					if websocket.IsCloseError(err, websocket.CloseNoStatusReceived, websocket.CloseAbnormalClosure, websocket.CloseInternalServerErr) {
-						for err != nil {
-							time.Sleep(5 * time.Second)
-
-							if uyghursConnection != nil {
-								uyghursConnection.Close()
-							}
-
-							uyghursConnection, _, err = websocket.DefaultDialer.Dial(uyghursURL.String(), nil)
-
-							if uyghursConnection != nil {
-								defer uyghursConnection.Close()
-							}
-						}
-
-						log.Println("Reconnected to uyghurs server!")
-
-						continue
-					} else if websocket.IsCloseError(err, websocket.CloseNoStatusReceived, websocket.CloseGoingAway, websocket.CloseMessage, websocket.CloseNormalClosure) {
-						log.Fatalln("Disconnected from uyghurs server,", err)
-					} else {
-						log.Fatalln("Disconnected from uyghurs server, unknown err,", err)
+					// if websocket.IsCloseError(err, websocket.CloseNoStatusReceived, websocket.CloseAbnormalClosure, websocket.CloseInternalServerErr) {
+					if uyghursConnection != nil {
+						uyghursConnection.Close()
 					}
+
+					uyghursConnection = connectIndefinitely()
+
+					log.Println("Reconnected to uyghurs server!")
+
+					continue
+					// } else if websocket.IsCloseError(err, websocket.CloseNoStatusReceived, websocket.CloseGoingAway, websocket.CloseMessage, websocket.CloseNormalClosure) {
+					// 	log.Fatalln("Disconnected from uyghurs server,", err)
+					// } else {
+					// 	log.Fatalln("Disconnected from uyghurs server, unknown err,", err)
+					// }
 				}
 
 				err = json.Unmarshal(messageBytes, &projectsMetadataMessage)
@@ -261,7 +273,7 @@ func main() {
 				log.Println("Updating projects routes...")
 
 				for _, projectMetadata := range projectsMetadataMessage {
-					log.Println("Updating", projectMetadata.ProjectName)
+					log.Println("Updating...", projectMetadata.ProjectName)
 
 					routesManager.UpdateProjectRoutes(projectMetadata)
 				}

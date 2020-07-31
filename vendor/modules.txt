@@ -13,10 +13,18 @@ github.com/go-playground/locales/currency
 github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.2.0
 github.com/go-playground/validator/v10
+# github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee
+github.com/gobwas/httphead
+# github.com/gobwas/pool v0.2.1
+github.com/gobwas/pool
+github.com/gobwas/pool/internal/pmath
+github.com/gobwas/pool/pbufio
+github.com/gobwas/pool/pbytes
+# github.com/gobwas/ws v1.0.3
+github.com/gobwas/ws
+github.com/gobwas/ws/wsutil
 # github.com/golang/protobuf v1.3.3
 github.com/golang/protobuf/proto
-# github.com/gorilla/websocket v1.4.2
-github.com/gorilla/websocket
 # github.com/json-iterator/go v1.1.9
 github.com/json-iterator/go
 # github.com/leodido/go-urn v1.2.0
