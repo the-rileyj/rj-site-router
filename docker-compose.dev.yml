@@ -7,14 +7,12 @@ x-hong-kong:
 
 services:
   rj-router:
-    image: therileyjohnson/rj-site-router_rj-router:latest
+    build: .
     env_file:
-      - prod.env
+      - dev.env
     restart: always
-    volumes:
-      - ./secrets:/secrets
     ports:
-      - "443:443"
+      - "9900:9900"
     networks:
       - rjnet
 

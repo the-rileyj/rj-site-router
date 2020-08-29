@@ -25,6 +25,8 @@ github.com/gobwas/ws
 github.com/gobwas/ws/wsutil
 # github.com/golang/protobuf v1.3.3
 github.com/golang/protobuf/proto
+# github.com/joho/godotenv v1.3.0
+github.com/joho/godotenv
 # github.com/json-iterator/go v1.1.9
 github.com/json-iterator/go
 # github.com/leodido/go-urn v1.2.0

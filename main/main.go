@@ -18,6 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
+	"github.com/joho/godotenv"
 	"github.com/the-rileyj/uyghurs"
 )
 
@@ -108,6 +109,11 @@ func (rM *routesManager) GetRouteInfo(domain, route string) (*extendedRouteInfo,
 		if domainManager.domainRegexp != nil && domainManager.domainRegexp.MatchString(domain) {
 			routeInfo, exists := domainManager.routesMap[route]
 
+			if !exists {
+				// Fallback to default route for domain
+				routeInfo, exists = domainManager.routesMap["/"]
+			}
+
 			return routeInfo, exists
 		}
 	}
@@ -138,12 +144,14 @@ func (rM *routesManager) UpdateProjectRoutes(projectMetadata *uyghurs.ProjectMet
 
 			seenRoutes[domain+routeInfo.Route] = true
 
-			domainRoutesManager := rM.domainRoutesMap[domain]
+			domainRoutesManager, domainRoutesManagerExists := rM.domainRoutesMap[domain]
 
-			delete(domainRoutesManager.routesMap, routeInfo.Route)
+			if domainRoutesManagerExists {
+				delete(domainRoutesManager.routesMap, routeInfo.Route)
 
-			if len(domainRoutesManager.routesMap) == 0 {
-				delete(rM.domainRoutesMap, domain)
+				if len(domainRoutesManager.routesMap) == 0 {
+					delete(rM.domainRoutesMap, domain)
+				}
 			}
 		}
 	}
@@ -197,98 +205,109 @@ func main() {
 	defaultDomain := flag.String("dd", "therileyjohnson.com", "the most frequently used domain, roughly the default")
 	defaultHost := flag.String("dh", "http://rj-site", "the default host to forward requests to")
 
+	envFile := flag.Bool("env", false, "use env file for config")
+
 	flag.Parse()
 
-	uyghursSecretJSONFile, err := os.Open("secrets/router.json")
+	if *envFile {
+		err := godotenv.Load()
 
-	if err != nil {
-		panic(err)
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}
 	}
 
-	uyghursSecretsJSONData := struct {
-		Secret string `json:"secret"`
-	}{}
+	envVars := make(map[string]string)
 
-	err = json.NewDecoder(uyghursSecretJSONFile).Decode(&uyghursSecretsJSONData)
+	for _, envVarKey := range []string{"DEVELOPMENT", "UYGHURS_CONNECTION_HOST", "UYGHURS_CONNECTION_SECRET", "UYGHURS_CONNECTION_SCHEME"} {
+		envVarValue := os.Getenv(envVarKey)
 
-	if err != nil {
-		panic(err)
+		if envVarValue == "" {
+			log.Fatalf(`environmental variable "%s" is not set`, envVarKey)
+		}
+
+		// Assure no extra whitespace characters (issue on windows with \r\n endings)
+		envVars[envVarKey] = strings.Trim(envVarValue, "\r\n")
 	}
+
+	if !*development {
+		*development = envVars["DEVELOPMENT"] != ""
+	}
+
+	uyghursConnectionHost := envVars["UYGHURS_CONNECTION_HOST"]
+	uyghursConnectionSecret := envVars["UYGHURS_CONNECTION_SECRET"]
+	uyghursConnectionScheme := envVars["UYGHURS_CONNECTION_SCHEME"]
+
+	///
 
 	routesManager := newRoutesManager(*defaultDomain, *defaultHost)
 
-	if !*development {
-		go func() {
-			uyghursURL := url.URL{Scheme: "wss", Host: "therileyjohnson.com:8443", Path: fmt.Sprintf("/router/%s", uyghursSecretsJSONData.Secret)}
+	go func() {
+		uyghursURL := url.URL{Scheme: uyghursConnectionScheme, Host: uyghursConnectionHost, Path: fmt.Sprintf("/router/%s", uyghursConnectionSecret)}
 
-			connectIndefinitely := func() net.Conn {
-				var (
-					conn    net.Conn
-					connErr error
-				)
+		connectIndefinitely := func() net.Conn {
+			var (
+				conn    net.Conn
+				connErr error
+			)
 
-				dialCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			dialCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
-				for conn, _, _, connErr = ws.DefaultDialer.Dial(dialCtx, uyghursURL.String()); connErr != nil; {
-					time.Sleep(time.Second)
-
-					cancel()
-
-					dialCtx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
-
-					conn, _, _, connErr = ws.DefaultDialer.Dial(dialCtx, uyghursURL.String())
-				}
+			for conn, _, _, connErr = ws.DefaultDialer.Dial(dialCtx, uyghursURL.String()); connErr != nil; {
+				time.Sleep(time.Second)
 
 				cancel()
 
-				return conn
+				dialCtx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+
+				conn, _, _, connErr = ws.DefaultDialer.Dial(dialCtx, uyghursURL.String())
 			}
 
-			uyghursConnection := connectIndefinitely()
+			cancel()
 
-			log.Println("Initial connection to uyghurs")
+			return conn
+		}
 
-			var projectsMetadataMessage []*uyghurs.ProjectMetadata
+		uyghursConnection := connectIndefinitely()
 
-			for {
-				messageBytes, _, err := wsutil.ReadServerData(uyghursConnection)
+		log.Println("Initial connection to uyghurs")
 
-				if err != nil {
-					// if websocket.IsCloseError(err, websocket.CloseNoStatusReceived, websocket.CloseAbnormalClosure, websocket.CloseInternalServerErr) {
-					if uyghursConnection != nil {
-						uyghursConnection.Close()
-					}
+		var projectsMetadataMessage []*uyghurs.ProjectMetadata
 
-					uyghursConnection = connectIndefinitely()
+		for {
+			messageBytes, _, err := wsutil.ReadServerData(uyghursConnection)
 
-					log.Println("Reconnected to uyghurs server!")
-
-					continue
-					// } else if websocket.IsCloseError(err, websocket.CloseNoStatusReceived, websocket.CloseGoingAway, websocket.CloseMessage, websocket.CloseNormalClosure) {
-					// 	log.Fatalln("Disconnected from uyghurs server,", err)
-					// } else {
-					// 	log.Fatalln("Disconnected from uyghurs server, unknown err,", err)
-					// }
+			if err != nil {
+				if uyghursConnection != nil {
+					uyghursConnection.Close()
 				}
 
-				err = json.Unmarshal(messageBytes, &projectsMetadataMessage)
+				uyghursConnection = connectIndefinitely()
 
-				if err != nil {
-					log.Println("read error:", err)
+				log.Println("Reconnected to uyghurs server!")
 
-					continue
-				}
-
-				log.Println("Updating projects routes...")
-
-				for _, projectMetadata := range projectsMetadataMessage {
-					log.Println("Updating...", projectMetadata.ProjectName)
-
-					routesManager.UpdateProjectRoutes(projectMetadata)
-				}
+				continue
 			}
-		}()
-	}
+
+			err = json.Unmarshal(messageBytes, &projectsMetadataMessage)
+
+			if err != nil {
+				log.Println("read error:", err)
+
+				continue
+			}
+
+			for _, projectMetadata := range projectsMetadataMessage {
+				log.Printf("Updating %s...", projectMetadata.ProjectName)
+
+				for _, projectRoute := range projectMetadata.ProjectRoutes {
+					log.Printf("\"%s%s\" -> \"%s%s\" \n", projectRoute.Domain, projectRoute.Route, projectRoute.ForwardHost, projectRoute.Route)
+				}
+
+				routesManager.UpdateProjectRoutes(projectMetadata)
+			}
+		}
+	}()
 
 	r := gin.Default()
 
