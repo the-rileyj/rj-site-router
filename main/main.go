@@ -313,7 +313,7 @@ func main() {
 
 		simplifiedRoutingMap := make(map[string]map[string]string)
 
-		for _, domainManager := range routesManager.domainRoutesMap {
+		for domain, domainManager := range routesManager.domainRoutesMap {
 			if domainManager.domainRegexp == nil {
 				continue
 			}
@@ -324,7 +324,11 @@ func main() {
 				simplifiedForwardingMap[domainRoute] = domainRouteExtendedInfo.Route
 			}
 
-			simplifiedRoutingMap[domainManager.domainRegexp.String()] = simplifiedForwardingMap
+			if domainManager.domainRegexp == nil {
+				simplifiedRoutingMap[domain] = simplifiedForwardingMap
+			} else {
+				simplifiedRoutingMap[domainManager.domainRegexp.String()] = simplifiedForwardingMap
+			}
 		}
 
 		simplifiedRoutingMapJSONBytes, err := json.MarshalIndent(simplifiedRoutingMap, "", "\t")
