@@ -4,7 +4,7 @@
 
 Setting up the NGINX config and getting it to work right for an ever expanding list of services became tiresome.
 
-This effectively a reverse proxy tailored to fit in the scheme of my back-end setup.
+This is effectively a low maintenance and highly configurable reverse proxy tailored to fit in the scheme of my back-end setup.
 
 ## What
 
