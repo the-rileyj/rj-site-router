@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
@@ -185,11 +186,7 @@ func (rM *routesManager) UpdateProjectRoutes(projectMetadata *uyghurs.ProjectMet
 		newRouteReverseProxy := httputil.NewSingleHostReverseProxy(newRouteHostURL)
 
 		domainRoutesMan.routesMap[routeInfo.Route] = &extendedRouteInfo{
-			RouteInfo: uyghurs.RouteInfo{
-				Domain:      routeInfo.Domain,
-				ForwardHost: routeInfo.ForwardHost,
-				Route:       routeInfo.Route,
-			},
+			RouteInfo:           *routeInfo,
 			ReverseProxyHandler: func(c *gin.Context) { newRouteReverseProxy.ServeHTTP(c.Writer, c.Request) },
 		}
 
@@ -310,6 +307,41 @@ func main() {
 
 	r := gin.Default()
 
+	r.GET("/routing", func(c *gin.Context) {
+		routesManager.lock.Lock()
+		defer routesManager.lock.Unlock()
+
+		simplifiedRoutingMap := make(map[string]map[string]string)
+
+		for _, domainManager := range routesManager.domainRoutesMap {
+			if domainManager.domainRegexp == nil {
+				continue
+			}
+
+			simplifiedForwardingMap := make(map[string]string)
+
+			for domainRoute, domainRouteExtendedInfo := range domainManager.routesMap {
+				simplifiedForwardingMap[domainRoute] = domainRouteExtendedInfo.Route
+			}
+
+			simplifiedRoutingMap[domainManager.domainRegexp.String()] = simplifiedForwardingMap
+		}
+
+		simplifiedRoutingMapJSONBytes, err := json.MarshalIndent(simplifiedRoutingMap, "", "\t")
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"msg":  "err wrangling routes",
+				"err":  true,
+				"data": gin.H{},
+			})
+
+			return
+		}
+
+		c.Writer.Write(simplifiedRoutingMapJSONBytes)
+	})
+
 	r.NoRoute(func(c *gin.Context) {
 		slashIndex := strings.Index(c.Request.URL.Path[1:], "/")
 
@@ -327,8 +359,6 @@ func main() {
 
 		routeInfo.ReverseProxyHandler(c)
 	})
-
-	fmt.Println("Boilerplate setup, running server...")
 
 	if *development {
 		r.Run(":9900")
