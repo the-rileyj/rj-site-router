@@ -238,8 +238,6 @@ func main() {
 	uyghursConnectionSecret := envVars["UYGHURS_CONNECTION_SECRET"]
 	uyghursConnectionScheme := envVars["UYGHURS_CONNECTION_SCHEME"]
 
-	///
-
 	routesManager := newRoutesManager(*defaultDomain, *defaultHost)
 
 	go func() {
@@ -328,6 +326,8 @@ func main() {
 
 		routeInfo.ReverseProxyHandler(c)
 	})
+
+	fmt.Println("Boilerplate setup, running server...")
 
 	if *development {
 		r.Run(":9900")
