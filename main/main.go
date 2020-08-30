@@ -220,7 +220,7 @@ func main() {
 	envVars := make(map[string]string)
 
 	// for _, envVarKey := range []string{"DEVELOPMENT", "UYGHURS_CONNECTION_HOST", "UYGHURS_CONNECTION_SECRET", "UYGHURS_CONNECTION_SCHEME"} {
-	for _, envVarKey := range []string{"DEVELOPMENT", "UYGHURS_CONNECTION_HOST", "UYGHURS_CONNECTION_SECRET", "UYGHURS_CONNECTION_SCHEME"} {
+	for _, envVarKey := range []string{"UYGHURS_CONNECTION_HOST", "UYGHURS_CONNECTION_SECRET", "UYGHURS_CONNECTION_SCHEME"} {
 		envVarValue := os.Getenv(envVarKey)
 
 		if envVarValue == "" {
