@@ -101,21 +101,49 @@ func (rM *routesManager) GetRouteInfo(domain, route string) (*extendedRouteInfo,
 			return nil, false
 		}
 
-		routeInfo, exists := domainRoutesManager.routesMap[route]
+		var foundRouteInfo *extendedRouteInfo
+		exists = false
 
-		return routeInfo, exists
+		for routePrefix, routeInfo := range domainRoutesManager.routesMap {
+			if strings.HasPrefix(route, routePrefix) {
+				if foundRouteInfo != nil {
+					if len(foundRouteInfo.Route) < len(routePrefix) {
+						foundRouteInfo = routeInfo
+					}
+				} else {
+					foundRouteInfo = routeInfo
+					exists = true
+				}
+			}
+		}
+
+		return foundRouteInfo, exists
 	}
 
-	for _, domainManager := range rM.domainRoutesMap {
-		if domainManager.domainRegexp != nil && domainManager.domainRegexp.MatchString(domain) {
-			routeInfo, exists := domainManager.routesMap[route]
+	for _, domainRoutesManager := range rM.domainRoutesMap {
+		if domainRoutesManager.domainRegexp != nil && domainRoutesManager.domainRegexp.MatchString(domain) {
+			var foundRouteInfo *extendedRouteInfo
+			exists := false
+
+			for routePrefix, routeInfo := range domainRoutesManager.routesMap {
+				if strings.HasPrefix(route, routePrefix) {
+					if foundRouteInfo != nil {
+						if len(foundRouteInfo.Route) < len(routePrefix) {
+							foundRouteInfo = routeInfo
+						}
+					} else {
+						foundRouteInfo = routeInfo
+						exists = true
+					}
+				}
+			}
 
 			if !exists {
 				// Fallback to default route for domain
-				routeInfo, exists = domainManager.routesMap["/"]
+				foundRouteInfo, exists = domainRoutesManager.routesMap["/"]
 			}
 
-			return routeInfo, exists
+			return foundRouteInfo, exists
 		}
 	}
 
@@ -347,15 +375,9 @@ func main() {
 	})
 
 	r.NoRoute(func(c *gin.Context) {
-		slashIndex := strings.Index(c.Request.URL.Path[1:], "/")
+		path := c.Request.URL.Path
 
-		pathPrefix := c.Request.URL.Path
-
-		if slashIndex != -1 {
-			pathPrefix = pathPrefix[:slashIndex+1]
-		}
-
-		routeInfo, exists := routesManager.GetRouteInfo(c.Request.Host, pathPrefix)
+		routeInfo, exists := routesManager.GetRouteInfo(c.Request.Host, path)
 
 		if !exists {
 			routeInfo = routesManager.GetDefaultRouteInfo()
