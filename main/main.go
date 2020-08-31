@@ -188,7 +188,20 @@ func (rM *routesManager) UpdateProjectRoutes(projectMetadata *uyghurs.ProjectMet
 	delete(rM.projectsMap, projectMetadata.ProjectName)
 
 	for _, routeInfo := range projectMetadata.ProjectRoutes {
-		domainRoutesMan, exists := rM.domainRoutesMap[routeInfo.Domain]
+		var domainRoutesMan *domainRoutesManager
+		exists := true
+
+		if routeInfo.Domain == "" {
+			domainRoutesMan, exists = rM.domainRoutesMap[rM.defaultDomain]
+
+			if !exists {
+				log.Println("Failed to update routing information, NO DEFAULT ROUTE INFO EXISTS")
+
+				return
+			}
+		} else {
+			domainRoutesMan, exists = rM.domainRoutesMap[routeInfo.Domain]
+		}
 
 		if !exists {
 			domainRegexp, err := regexp.Compile(routeInfo.Domain)
