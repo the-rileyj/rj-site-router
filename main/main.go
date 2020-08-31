@@ -349,7 +349,7 @@ func main() {
 			simplifiedForwardingMap := make(map[string]string)
 
 			for domainRoute, domainRouteExtendedInfo := range domainManager.routesMap {
-				simplifiedForwardingMap[domainRoute] = domainRouteExtendedInfo.Route
+				simplifiedForwardingMap[domainRoute] = domainRouteExtendedInfo.ForwardHost
 			}
 
 			if domainManager.domainRegexp == nil {
