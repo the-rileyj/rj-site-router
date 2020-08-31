@@ -342,10 +342,6 @@ func main() {
 		simplifiedRoutingMap := make(map[string]map[string]string)
 
 		for domain, domainManager := range routesManager.domainRoutesMap {
-			if domainManager.domainRegexp == nil {
-				continue
-			}
-
 			simplifiedForwardingMap := make(map[string]string)
 
 			for domainRoute, domainRouteExtendedInfo := range domainManager.routesMap {
@@ -380,6 +376,8 @@ func main() {
 		routeInfo, exists := routesManager.GetRouteInfo(c.Request.Host, path)
 
 		if !exists {
+			fmt.Println("HIT DEFAULT ROUTE")
+
 			routeInfo = routesManager.GetDefaultRouteInfo()
 		}
 
