@@ -10,6 +10,8 @@ services:
     build: .
     env_file:
       - dev.env
+    entrypoint:
+      ["/server", "-dd", "localhost:9900", "-d", "-dh", "http://rj-site"]
     restart: always
     ports:
       - "9900:9900"
